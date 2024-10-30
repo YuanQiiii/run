@@ -8,7 +8,7 @@ https://www.cnblogs.com/xy14/p/12371671.html
 有关环境变量的设置使得该程序在任何地方的终端都可以工作
 ## 使用方法
 ```cmd
-run wechar
+run wechar  # 这里的简称使用英文或者拼音，暂不支持中文
 ```
 ## 注意
 需要自行设置txt文件的路径  
