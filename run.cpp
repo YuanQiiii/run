@@ -2,8 +2,6 @@
 #include <fstream>
 #include <string>
 #include <windows.h>
-#include <iconv.h>
-#include <cstring>
 
 // 将UTF-8编码转换为UTF-16编码
 std::wstring utf8_to_wstring(const std::string &str)
@@ -14,49 +12,68 @@ std::wstring utf8_to_wstring(const std::string &str)
     return wstr;
 }
 
-void executeCommand(const std::wstring &path, char *argv)
+// 执行命令
+void executeCommand(const std::wstring &path, char *name)
 {
-    // 输出执行命令
-    std::wcout << L"Running: " << argv << std::endl;
-
-    // 使用 PowerShell 执行命令
+    std::wcout << ">> " << L"Running: " << name << std::endl;
     std::wstring command = L"powershell -Command \"Start-Process -File '" + path + L"'\"";
     _wsystem(command.c_str());
 }
 
+void listEntries(const std::string &filename)
+{
+    std::ifstream file(filename);
+    std::string line;
+
+    while (std::getline(file, line))
+    {
+        // 找到并输出第一个字符串
+        size_t end = line.find(' ');
+        if (end != std::string::npos)
+        {
+            std::cout << ">> " << line.substr(0, end) << std::endl; // 输出第一个字符串
+        }
+        else
+        {
+            std::cout << "invalid path" << std::endl; // 如果没有空格，输出整行
+        }
+    }
+}
+
 int main(int argc, char *argv[])
 {
-    // 检查命令行参数
     if (argc < 2)
     {
         std::cerr << "please input the name of software" << std::endl;
         return 1;
     }
+    std::string command = argv[1];
 
-    std::string input = argv[1];
+    // 如果命令是 ls，则列出所有条目
+    if (command == "ls")
+    {
+        listEntries("C:\\run\\paths.txt");
+        return 0; // 直接返回
+    }
+
+    std::wstring input = utf8_to_wstring(argv[1]);
+
     std::ifstream file("C:\\run\\paths.txt");
     std::string line;
     bool found = false;
 
-    // 设置控制台输出为 UTF-8
-    SetConsoleOutputCP(CP_UTF8);
-    SetConsoleCP(CP_UTF8); // 设置输入代码页
-
-    // 查找对应的文件路径
     while (std::getline(file, line))
     {
-        if (line.find(input) != std::string::npos)
+        std::wstring wline = utf8_to_wstring(line);
+        if (wline.substr(0, input.length()) == input && wline[input.length()] == L' ')
         {
-            // 找到匹配的行，提取路径
             size_t start = line.find('"');
             size_t end = line.find('"', start + 1);
             if (start != std::string::npos && end != std::string::npos)
             {
                 std::string path = line.substr(start + 1, end - start - 1);
-
-                // 将路径转换为宽字符字符串
                 std::wstring wpath = utf8_to_wstring(path);
-                executeCommand(wpath, argv[1]); // 直接执行路径
+                executeCommand(wpath, argv[1]);
                 found = true;
                 break;
             }
@@ -65,7 +82,7 @@ int main(int argc, char *argv[])
 
     if (!found)
     {
-        std::cerr << "not found" << std::endl;
+        std::wcerr << L"not found" << std::endl;
     }
 
     return 0;
