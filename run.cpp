@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <unordered_map>
 #include <windows.h>
 
 // 将UTF-8编码转换为UTF-16编码
@@ -13,13 +14,14 @@ std::wstring utf8_to_wstring(const std::string &str)
 }
 
 // 执行命令
-void executeCommand(const std::wstring &path, char *name)
+void executeCommand(const std::wstring &path, const std::string &name, const std::wstring &type)
 {
-    std::wcout << ">> " << L"Running: " << name << std::endl;
+    std::wcout << L">>  Running:  " << utf8_to_wstring(name) << L"  (" << type << L")" << std::endl;
     std::wstring command = L"powershell -Command \"Start-Process -File '" + path + L"'\"";
     _wsystem(command.c_str());
 }
 
+// 列出所有条目
 void listEntries(const std::string &filename)
 {
     std::ifstream file(filename);
@@ -27,15 +29,15 @@ void listEntries(const std::string &filename)
 
     while (std::getline(file, line))
     {
-        // 找到并输出第一个字符串
-        size_t end = line.find(' ');
-        if (end != std::string::npos)
+        size_t pos = line.find('>');
+        if (pos != std::string::npos)
         {
-            std::cout << ">> " << line.substr(0, end) << std::endl; // 输出第一个字符串
-        }
-        else
-        {
-            std::cout << "invalid path" << std::endl; // 如果没有空格，输出整行
+            std::cout << ">> " << line.substr(0, pos) << " "; // 输出指令
+            size_t typePos = line.find('>', pos + 1);
+            if (typePos != std::string::npos)
+            {
+                std::cout << line.substr(pos + 1, typePos - pos - 1) << std::endl; // 输出指令类型
+            }
         }
     }
 }
@@ -44,7 +46,7 @@ int main(int argc, char *argv[])
 {
     if (argc < 2)
     {
-        std::cerr << "please input the name of software" << std::endl;
+        std::cerr << "please input command" << std::endl;
         return 1;
     }
     std::string command = argv[1];
@@ -56,28 +58,43 @@ int main(int argc, char *argv[])
         return 0; // 直接返回
     }
 
-    std::wstring input = utf8_to_wstring(argv[1]);
-
+    std::wstring input = utf8_to_wstring(command);
     std::ifstream file("C:\\run\\paths.txt");
     std::string line;
     bool found = false;
 
+    // 使用unordered_map存储指令和路径
+    std::unordered_map<std::string, std::pair<std::string, std::string>> commandMap;
+
     while (std::getline(file, line))
     {
-        std::wstring wline = utf8_to_wstring(line);
-        if (wline.substr(0, input.length()) == input && wline[input.length()] == L' ')
+        size_t pos = line.find('>');
+        if (pos != std::string::npos)
         {
-            size_t start = line.find('"');
-            size_t end = line.find('"', start + 1);
-            if (start != std::string::npos && end != std::string::npos)
+            std::string cmd = line.substr(0, pos);
+            size_t typePos = line.find('>', pos + 1);
+            if (typePos != std::string::npos)
             {
-                std::string path = line.substr(start + 1, end - start - 1);
-                std::wstring wpath = utf8_to_wstring(path);
-                executeCommand(wpath, argv[1]);
-                found = true;
-                break;
+                std::string type = line.substr(pos + 1, typePos - pos - 1);
+                size_t pathStart = line.find('"', typePos + 1);
+                size_t pathEnd = line.find('"', pathStart + 1);
+                if (pathStart != std::string::npos && pathEnd != std::string::npos)
+                {
+                    std::string path = line.substr(pathStart + 1, pathEnd - pathStart - 1);
+                    commandMap[cmd] = {type, path};
+                }
             }
         }
+    }
+
+    // 查找命令并执行
+    auto it = commandMap.find(command);
+    if (it != commandMap.end())
+    {
+        std::wstring wpath = utf8_to_wstring(it->second.second);
+        std::wstring wtype = utf8_to_wstring(it->second.first);
+        executeCommand(wpath, command, wtype);
+        found = true;
     }
 
     if (!found)
@@ -87,31 +104,3 @@ int main(int argc, char *argv[])
 
     return 0;
 }
-
-/*
-新的要求
-
-精简不必要的环节
-比方说只有在使用powershell输出命令的时候才需要中文
-
-现在重新设计路径规则
-eric>f>"C:\Users\exqin\eric"
-使用<作为分隔符
-eric是指令，f是指令类型，代表文件夹，后面是路径
-edge>p>"C:\Users\exqin\Desktop\eric\software\Tools\Microsoft Edge.lnk"
-edge是指令，p为指令类型，代表程序，后面是路径
-
-匹配的逻辑需要改变
-现在的思路是把所有的txt文件的条目读取到动态数组中，这一步要求支持中文字符
-每一个字符串通过>劈分成三部分 指令;指令类型;路径 ，这里只有路径会出现中文
-
-使用map对终端中读取的指令在指令数组中进行搜索
-
-ls仍旧代表输出所有的命令，但是现在要求输出指令类型在指令之前
-比方说
-p edge
-
-
-
-
-*/
