@@ -87,3 +87,31 @@ int main(int argc, char *argv[])
 
     return 0;
 }
+
+/*
+新的要求
+
+精简不必要的环节
+比方说只有在使用powershell输出命令的时候才需要中文
+
+现在重新设计路径规则
+eric>f>"C:\Users\exqin\eric"
+使用<作为分隔符
+eric是指令，f是指令类型，代表文件夹，后面是路径
+edge>p>"C:\Users\exqin\Desktop\eric\software\Tools\Microsoft Edge.lnk"
+edge是指令，p为指令类型，代表程序，后面是路径
+
+匹配的逻辑需要改变
+现在的思路是把所有的txt文件的条目读取到动态数组中，这一步要求支持中文字符
+每一个字符串通过>劈分成三部分 指令;指令类型;路径 ，这里只有路径会出现中文
+
+使用map对终端中读取的指令在指令数组中进行搜索
+
+ls仍旧代表输出所有的命令，但是现在要求输出指令类型在指令之前
+比方说
+p edge
+
+
+
+
+*/
