@@ -51,5 +51,9 @@ Replace `<command_name>` with the actual name of the command you wish to execute
 ## License
 This software is provided under the [MIT License](https://opensource.org/licenses/MIT). Feel free to modify and distribute the code as long as you include the original copyright and license notice in any copy or modification of the software.
 
+## Reference
+For environment variable setting ,you can read this blog.
+> https://www.cnblogs.com/xy14/p/12371671.html
+
 ## Contact
 For any questions or issues regarding the utility, please contact the developer at [shihuaidexianyu@gmail.com](mailto:your_email@example.com).
